@@ -1,0 +1,30 @@
+#ifndef CONFIG_H
+#define CONFIG_H
+
+// WiFi
+#define WIFI_SSID "iPhone Валентин"
+#define WIFI_PASSWORD "rolton1575"
+
+// MQTT
+#define MQTT_BROKER "192.168.1.100"
+#define MQTT_PORT 1883
+#define MQTT_CLIENT_ID "alarm_main_controller"
+#define MQTT_USER ""
+#define MQTT_PASSWORD ""
+
+// Topics
+#define TOPIC_STATUS "alarm/status"
+#define TOPIC_SENSORS "alarm/sensors"
+#define TOPIC_EVENTS "alarm/events"
+#define TOPIC_COMMANDS "alarm/commands"
+#define TOPIC_PAIRING "alarm/pairing"
+
+// ESP-NOW
+#define MAX_SENSORS 32
+#define PAIRING_TIMEOUT 60000 // 60 секунд
+
+// Sensor types
+#define SENSOR_TYPE_IR 0
+#define SENSOR_TYPE_REED 1
+
+#endif
