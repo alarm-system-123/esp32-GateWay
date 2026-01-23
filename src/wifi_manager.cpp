@@ -38,6 +38,7 @@ void WiFiManager::connect()
     else
     {
         Serial.println("\nFailed to connect to WiFi");
+        Serial.println(WiFi.localIP());
     }
 }
 

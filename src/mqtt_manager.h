@@ -14,7 +14,7 @@ private:
 public:
     void begin();
     void connect();
-    bool isConnected();
+    // bool isConnected();
     void handle(); // mqttClient.loop()
 
     void publish(const char *topic, const char *payload);
@@ -22,5 +22,7 @@ public:
 
     void setCallback(MQTT_CALLBACK_SIGNATURE);
 };
+
+extern MQTTManager mqttManager;
 
 #endif

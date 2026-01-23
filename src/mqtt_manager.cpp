@@ -64,10 +64,10 @@ void MQTTManager::connect()
     }
 }
 
-bool MQTTManager::isConnected()
-{
-    return mqttClient.connected();
-}
+// bool MQTTManager::isConnected()
+// {
+//     return mqttClient.connected();
+// }
 
 void MQTTManager::handle()
 {
@@ -93,48 +93,42 @@ void MQTTManager::handle()
 
 void MQTTManager::publish(const char *topic, const char *payload)
 {
-    if (mqttClient.connected())
+    if (!mqttClient.connected())
     {
-        bool result = mqttClient.publish(topic, payload);
+        Serial.println("Cannot publish - MQTT not connected");
+        return;
+    }
 
-        if (result)
-        {
-            Serial.print("Published to ");
-            Serial.print(topic);
-            Serial.print(": ");
-            Serial.println(payload);
-        }
-        else
-        {
-            Serial.println("Failed to publish message");
-        }
+    if (mqttClient.publish(topic, payload))
+    {
+        Serial.print("Published to ");
+        Serial.print(topic);
+        Serial.print(": ");
+        Serial.println(payload);
     }
     else
     {
-        Serial.println("Cannot publish - MQTT not connected");
+        Serial.println("Failed to publish message");
     }
 }
 
 void MQTTManager::subscribe(const char *topic)
 {
-    if (mqttClient.connected())
+    if (!mqttClient.connected())
     {
-        bool result = mqttClient.subscribe(topic);
+        Serial.println("Cannot subscribe - MQTT not connected");
+        return;
+    }
 
-        if (result)
-        {
-            Serial.print("Subscribed to: ");
-            Serial.println(topic);
-        }
-        else
-        {
-            Serial.print("Failed to subscribe to: ");
-            Serial.println(topic);
-        }
+    if (mqttClient.subscribe(topic))
+    {
+        Serial.print("Subscribed to: ");
+        Serial.println(topic);
     }
     else
     {
-        Serial.println("Cannot subscribe - MQTT not connected");
+        Serial.print("Failed to subscribe to: ");
+        Serial.println(topic);
     }
 }
 

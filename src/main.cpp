@@ -49,44 +49,30 @@
 //   // }
 // }
 
+// common
 #include <Arduino.h>
 #include "config.h"
+// WIFI Connection
 #include "wifi_manager.h"
+
+// MQTT
 #include "mqtt_manager.h"
+#include "mqtt_callback.h"
 
 WiFiManager wifiManager;
 MQTTManager mqttManager;
 
-// Callback для обробки вхідних MQTT повідомлень
-void mqttCallback(char *topic, byte *payload, unsigned int length)
+void temp_func()
 {
-  Serial.print("Message arrived [");
-  Serial.print(topic);
-  Serial.print("]: ");
-
-  // Перетворення payload в string
-  String message = "";
-  for (unsigned int i = 0; i < length; i++)
+  // Тестова публікація кожні 10 секунд
+  static unsigned long lastPublish = 0;
+  if (millis() - lastPublish > 30000)
   {
-    message += (char)payload[i];
-  }
-  Serial.println(message);
-
-  // Обробка команд
-  if (strcmp(topic, TOPIC_COMMANDS) == 0)
-  {
-    // Тут буде обробка JSON команд
-    if (message == "arm")
-    {
-      Serial.println("Command: ARM system");
-    }
-    else if (message == "disarm")
-    {
-      Serial.println("Command: DISARM system");
-    }
+    String payload = "{\"uptime\":" + String(millis() / 1000) + "}";
+    mqttManager.publish(TOPIC_STATUS, payload.c_str());
+    lastPublish = millis();
   }
 }
-
 void setup()
 {
   Serial.begin(115200);
@@ -102,6 +88,9 @@ void setup()
   mqttManager.begin();
   mqttManager.setCallback(mqttCallback); // Встановлюємо callback
   mqttManager.connect();
+
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, LOW);
 }
 
 void loop()
@@ -109,14 +98,7 @@ void loop()
   wifiManager.handle();
   mqttManager.handle();
 
-  // Тестова публікація кожні 10 секунд
-  static unsigned long lastPublish = 0;
-  if (millis() - lastPublish > 10000)
-  {
-    String payload = "{\"uptime\":" + String(millis() / 1000) + "}";
-    mqttManager.publish(TOPIC_STATUS, payload.c_str());
-    lastPublish = millis();
-  }
+  temp_func();
 
   delay(10);
 }
