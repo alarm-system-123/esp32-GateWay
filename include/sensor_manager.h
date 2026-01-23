@@ -3,6 +3,7 @@
 #define SENSOR_MANAGER_H
 
 #include <Arduino.h>
+#include "config.h"
 
 struct Sensor
 {

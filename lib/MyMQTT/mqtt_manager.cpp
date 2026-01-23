@@ -1,5 +1,5 @@
 #include "mqtt_manager.h"
-#include "config.h"
+#include "../../include/config.h"
 
 void MQTTManager::begin()
 {
