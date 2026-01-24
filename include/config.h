@@ -20,7 +20,7 @@
 #define TOPIC_PAIRING "alarm/pairing"
 
 // ESP-NOW it's esp staff
-#define MAX_SENSORS 32
+#define MAX_SENSORS 10
 #define PAIRING_TIMEOUT 60000 // 60 секунд
 
 // Sensor types

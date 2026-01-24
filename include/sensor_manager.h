@@ -1,41 +1,37 @@
-// sensor_manager.h
 #ifndef SENSOR_MANAGER_H
 #define SENSOR_MANAGER_H
 
 #include <Arduino.h>
+#include <WiFi.h> // Потрібно для роботи з macAddress
 #include "config.h"
+#include "structure_sensor.h"
 
-struct Sensor
-{
-    uint8_t mac[6];
-    char id[13];
-    char name[32];
-    uint8_t type;
-    uint8_t group_id;
-    bool is_armed;
-    bool is_online;
-    uint8_t battery;
-    uint32_t last_seen;
-    bool triggered;
-};
-
+// --- Клас для управління всіма датчиками ---
 class SensorManager
 {
 private:
-    Sensor sensors[MAX_SENSORS];
-    uint8_t count;
+    SensorNode sensors[MAX_SENSORS]; // Масив всіх можливих датчиків
+    int sensorCount = 0;
 
 public:
-    void begin();
+    SensorManager();
 
-    int addSensor(uint8_t *mac, uint8_t type);
-    Sensor *findByMAC(uint8_t *mac);
-    void updateState(uint8_t *mac, bool triggered, uint8_t battery);
-    void removeSensor(uint8_t *mac);
+    // Знайти датчик за MAC-адресою. Повертає індекс в масиві або -1, якщо не знайдено.
+    int findSensorByMac(const uint8_t *macAddr);
+    // Додати новий датчик або оновити існуючий
+    int registerOrUpdateSensor(const uint8_t *macAddr, uint8_t type, float battery);
 
-    String toJSON(); // Серіалізація для MQTT
-    uint8_t getCount() { return count; }
-    Sensor *getSensor(uint8_t index);
+    // Оновити статус тривоги (Motion або Door Open)
+    void updateSensorState(int index, bool newState);
+
+    // Отримати вказівник на датчик за індексом (для читання даних)
+    SensorNode *getSensor(int index);
+
+    // Перевірка на "мертві" датчики (Offline)
+    bool isSensorOffline(int index);
+
+    // Допоміжна функція для форматування MAC в рядок (для логів)
+    String macToString(const uint8_t *mac);
 };
 
 #endif
