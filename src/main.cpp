@@ -72,19 +72,6 @@ void OnDataRecv(const uint8_t *mac, const uint8_t *incomingDataPtr, int len)
   }
 }
 
-void temp_func()
-{
-  // Heartbeat шлюзу (щоб знати, що сама база жива)
-  static unsigned long lastPublish = 0;
-  if (millis() - lastPublish > 30000)
-  {
-    String payload = "{\"uptime\":" + String(millis() / 1000) + ", \"wifi_rssi\":" + String(WiFi.RSSI()) + "}";
-    // TOPIC_STATUS має бути в config.h
-    mqttManager.publish("home/gateway/status", payload.c_str());
-    lastPublish = millis();
-  }
-}
-
 void setup()
 {
   Serial.begin(115200);
@@ -98,6 +85,7 @@ void setup()
 
   Serial.print("WiFi MAC: ");
   Serial.println(WiFi.macAddress());
+  Serial.println(WiFi.channel());
 
   // 2. ESP-NOW Ініціалізація
   if (esp_now_init() != ESP_OK)
@@ -127,8 +115,5 @@ void loop()
 {
   wifiManager.handle();
   mqttManager.handle();
-
-  temp_func();
-
   delay(10);
 }
