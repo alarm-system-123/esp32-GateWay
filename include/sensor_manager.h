@@ -34,4 +34,6 @@ public:
     String macToString(const uint8_t *mac);
 };
 
+extern SensorManager sensorManager;
+
 #endif
