@@ -21,6 +21,8 @@ public:
     void subscribe(const char *topic);
 
     void setCallback(MQTT_CALLBACK_SIGNATURE);
+
+    void publishStatus(const char *status);
 };
 
 extern MQTTManager mqttManager;

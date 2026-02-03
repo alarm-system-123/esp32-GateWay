@@ -2,11 +2,9 @@
 
 bool parseJson(byte *payload,
                unsigned int length,
-               StaticJsonDocument<128> &doc)
+               JsonDocument &doc)
 {
-    payload[length] = '\0';
-
-    DeserializationError error = deserializeJson(doc, payload);
+    DeserializationError error = deserializeJson(doc, payload, length);
     if (error)
     {
         Serial.print("JSON parse error: ");

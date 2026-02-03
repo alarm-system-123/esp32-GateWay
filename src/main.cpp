@@ -1,7 +1,7 @@
 // common
 #include <Arduino.h>
 #include "config.h"
-
+#include "topics.h"
 // WIFI Connection
 #include "wifi_manager.h"
 
@@ -45,6 +45,7 @@ void setup()
     Serial.println("ESP-NOW Initialized Successfully");
     esp_now_register_recv_cb(esp_now_recv_cb_t(OnDataRecv));
   }
+  initTopics(); // ДО mqttManager.connect()
 
   // 3. MQTT
   mqttManager.begin();

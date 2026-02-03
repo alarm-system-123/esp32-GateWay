@@ -1,5 +1,7 @@
 #include "mqtt_manager.h"
+#include "../../include/topics.h"
 #include "../../include/config.h"
+#include <ArduinoJson.h>
 
 void MQTTManager::begin()
 {
@@ -41,10 +43,10 @@ void MQTTManager::connect()
         Serial.println(" connected!");
 
         // Публікуємо статус "online"
-        publish(TOPIC_STATUS, "{\"status\":\"online\",\"device\":\"main_controller\"}");
+        publish(TOPIC_STATUS.c_str(), "{\"status\":\"online\",\"device\":\"main_controller\"}");
 
         // Підписуємось на топік команд
-        subscribe(TOPIC_COMMANDS);
+        subscribe(TOPIC_COMMANDS.c_str());
     }
     else
     {
@@ -135,4 +137,16 @@ void MQTTManager::subscribe(const char *topic)
 void MQTTManager::setCallback(MQTT_CALLBACK_SIGNATURE)
 {
     mqttClient.setCallback(callback);
+}
+
+void MQTTManager::publishStatus(const char *status)
+{
+    JsonDocument doc;
+    doc["type"] = "status";
+    doc["status"] = status;
+
+    char buffer[128];
+    serializeJson(doc, buffer);
+
+    publish(TOPIC_STATUS.c_str(), buffer);
 }

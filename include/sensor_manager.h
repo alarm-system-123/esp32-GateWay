@@ -3,8 +3,10 @@
 
 #include <Arduino.h>
 #include <WiFi.h> // Потрібно для роботи з macAddress
-#include "config.h"
 #include "structure_sensor.h"
+
+#define MAX_SENSORS 10
+#define PAIRING_TIMEOUT 60000 // 60 секунд
 
 // --- Клас для управління всіма датчиками ---
 class SensorManager
