@@ -4,19 +4,28 @@
 #include "device_controller.h"
 #include "mqtt_manager.h"
 #include "topics.h"
+#include "system_state.h"
 
 void armSystem()
 {
     digitalWrite(LED_BUILTIN, HIGH);
+    currentSystemState = ARMED_FULL;
     mqttManager.publishStatus("armed");
 }
 
 void disarmSystem()
 {
     digitalWrite(LED_BUILTIN, LOW);
+    currentSystemState = DISARMED;
     mqttManager.publishStatus("disarmed");
 }
 
+void armPartial()
+{
+    digitalWrite(LED_BUILTIN, HIGH);
+    currentSystemState = ARMED_PARTIAL;
+    mqttManager.publishStatus("partial armed");
+}
 void sensorStatus()
 {
     for (int i = 0; i < MAX_SENSORS; i++)

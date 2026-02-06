@@ -5,6 +5,7 @@
 CommandEntry commandTable[] = {
     {"cmd", "arm", armSystem},
     {"cmd", "disarm", disarmSystem},
+    {"cmd", "partial", armPartial},
     {"sensor", "sensor_status", sensorStatus}};
 
 const size_t commandCount = sizeof(commandTable) / sizeof(commandTable[0]);

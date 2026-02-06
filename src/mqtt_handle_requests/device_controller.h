@@ -4,3 +4,4 @@
 void armSystem();
 void disarmSystem();
 void sensorStatus();
+void armPartial();
