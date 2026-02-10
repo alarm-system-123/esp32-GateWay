@@ -2,6 +2,9 @@
 #include <Arduino.h>
 #include "config.h"
 #include "topics.h"
+
+#include "system_state.h"
+
 // WIFI Connection
 #include "wifi_manager.h"
 
@@ -17,6 +20,8 @@
 WiFiManager wifiManager;
 MQTTManager mqttManager;
 SensorManager sensorManager;
+
+SystemState currentSystemState = DISARMED;
 
 void setup()
 {

@@ -7,6 +7,32 @@
 
 struct_message incomingData;
 
+static void sendSensorToMqtt(SensorNode *s)
+{
+    if (s == nullptr)
+        return;
+
+    String topic = String("home/sensors/") + String(s->id);
+
+    String statusStr = "ALARM";
+    String typeStr = (s->type == SENSOR_TYPE_IR) ? "IR" : "REED";
+
+    String payload = "{";
+    payload += "\"status\":\"" + statusStr + "\",";
+    payload += "\"type\":\"" + typeStr + "\",";
+    payload += "\"bat\":" + String(s->batteryVolts, 2);
+    payload += "}";
+
+    mqttManager.publish(topic.c_str(), payload.c_str());
+
+    Serial.print("ID:");
+    Serial.print(s->id);
+    Serial.print(" [State: ");
+    Serial.print(statusStr);
+    Serial.print("] -> Payload: ");
+    Serial.println(payload);
+}
+
 void OnDataRecv(const uint8_t *mac, const uint8_t *incomingDataPtr, int len)
 {
     if (len != sizeof(incomingData))
@@ -40,28 +66,3 @@ void OnDataRecv(const uint8_t *mac, const uint8_t *incomingDataPtr, int len)
     }
 }
 
-static void sendSensorToMqtt(SensorNode *s)
-{
-    if (s == nullptr)
-        return;
-
-    String topic = String("home/sensors/") + String(s->id);
-
-    String statusStr = "ALARM";
-    String typeStr = (s->type == SENSOR_TYPE_IR) ? "IR" : "REED";
-
-    String payload = "{";
-    payload += "\"status\":\"" + statusStr + "\",";
-    payload += "\"type\":\"" + typeStr + "\",";
-    payload += "\"bat\":" + String(s->batteryVolts, 2);
-    payload += "}";
-
-    mqttManager.publish(topic.c_str(), payload.c_str());
-
-    Serial.print("ID:");
-    Serial.print(s->id);
-    Serial.print(" [State: ");
-    Serial.print(statusStr);
-    Serial.print("] -> Payload: ");
-    Serial.println(payload);
-}
