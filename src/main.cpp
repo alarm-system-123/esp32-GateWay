@@ -27,7 +27,7 @@ void setup()
 {
   Serial.begin(115200);
   delay(1000);
-
+  sensorManager.init();
   Serial.println("\n=== Alarm System Main Controller ===");
 
   // 1. WiFi

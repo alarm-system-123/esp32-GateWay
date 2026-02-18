@@ -7,6 +7,60 @@ SensorManager::SensorManager()
         sensors[i].isPaired = false;
     }
 }
+bool SensorManager::removeSensorById(int id)
+{
+    for (int i = 0; i < MAX_SENSORS; i++)
+    {
+        if (sensors[i].isPaired && sensors[i].id == id)
+        {
+            sensors[i].isPaired = false;
+            sensorCount--;
+
+            saveSensors();
+            Serial.printf("Sensor ID %d successfully removed.\n", id);
+            return true;
+        }
+    }
+    Serial.printf("Error: Sensor ID %d not found.\n", id);
+    return false;
+}
+
+void SensorManager::init()
+{
+    pref.begin("sys-data", false);
+    size_t len = pref.getBytesLength("sensors_db");
+
+    if (len == sizeof(sensors))
+    {
+        pref.getBytes("sensors_db", &sensors, sizeof(sensors));
+
+        sensorCount = 0;
+        for (int i = 0; i < MAX_SENSORS; i++)
+        {
+            if (sensors[i].isPaired)
+            {
+                sensorCount++;
+                sensors[i].state = 0;
+                sensors[i].lastSeen = millis();
+            }
+        }
+        Serial.printf("Loaded %d paired sensors from memory.\n", sensorCount);
+    }
+    else
+    {
+        Serial.println("No saved sensors found. Starting fresh.");
+    }
+
+    pref.end();
+}
+
+void SensorManager::saveSensors()
+{
+    pref.begin("sys-data", false);
+    pref.putBytes("sensors_db", &sensors, sizeof(sensors));
+    pref.end();
+    Serial.println("Sensor database saved to memory.");
+}
 
 int SensorManager::findSensorByMac(const uint8_t *macAddr)
 {
@@ -20,15 +74,13 @@ int SensorManager::findSensorByMac(const uint8_t *macAddr)
     return -1;
 }
 
-int SensorManager::registerOrUpdateSensor(const uint8_t *macAddr, uint8_t type, float battery)
+int SensorManager::registerNewSensor(const uint8_t *macAddr, uint8_t type, float battery)
 {
-    int index = findSensorByMac(macAddr);
-
-    if (index != -1)
+    int existingIdx = findSensorByMac(macAddr);
+    if (existingIdx != -1)
     {
-        sensors[index].lastSeen = millis();
-        sensors[index].batteryVolts = battery;
-        return index;
+        updateSensorHeartbeat(existingIdx, battery);
+        return existingIdx;
     }
 
     for (int i = 0; i < MAX_SENSORS; i++)
@@ -41,22 +93,35 @@ int SensorManager::registerOrUpdateSensor(const uint8_t *macAddr, uint8_t type, 
             sensors[i].isPaired = true;
             sensors[i].lastSeen = millis();
             sensors[i].batteryVolts = battery;
-            sensors[i].state = false;
+            sensors[i].state = 0;
             snprintf(sensors[i].name, 20, "Sensor_%d", sensors[i].id);
 
             sensorCount++;
+
+            saveSensors();
+            Serial.printf("New Sensor Registered: ID %d\n", sensors[i].id);
+
             return i;
         }
     }
-
+    Serial.println("Error: No free slots for new sensor!");
     return -1;
+}
+
+void SensorManager::updateSensorHeartbeat(int index, float battery)
+{
+    if (index >= 0 && index < MAX_SENSORS && sensors[index].isPaired)
+    {
+        sensors[index].lastSeen = millis();
+        sensors[index].batteryVolts = battery;
+    }
 }
 
 void SensorManager::updateSensorState(int index, bool newState)
 {
-    if (index >= 0 && index < MAX_SENSORS)
+    if (index >= 0 && index < MAX_SENSORS && sensors[index].isPaired)
     {
-        sensors[index].state = newState;
+        sensors[index].state = newState ? 1 : 0;
         sensors[index].lastSeen = millis();
     }
 }

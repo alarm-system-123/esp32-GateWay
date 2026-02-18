@@ -7,7 +7,8 @@ enum SystemState
 {
     DISARMED = 0,
     ARMED_FULL = 1,
-    ARMED_PARTIAL = 2
+    ARMED_PARTIAL = 2,
+    PAIRING_MODE = 99
 };
 
 extern SystemState currentSystemState;

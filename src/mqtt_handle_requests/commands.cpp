@@ -6,8 +6,9 @@ CommandEntry commandTable[] = {
     {"cmd", "arm", armSystem},
     {"cmd", "disarm", disarmSystem},
     {"cmd", "partial", armPartial},
-    {"sensor", "sensor_status", sensorStatus}};
-
+    {"sensor", "sensor_status", sensorStatus},
+    {"sensor", "add_sensor", addSensor},
+    {"sensor", "remove_sensor", removeSensor}};
 const size_t commandCount = sizeof(commandTable) / sizeof(commandTable[0]);
 
 void handleCommand(const JsonDocument &doc)
@@ -26,7 +27,7 @@ void handleCommand(const JsonDocument &doc)
         if (strcmp(cmd, commandTable[i].cmd) == 0 &&
             strcmp(action, commandTable[i].action) == 0)
         {
-            commandTable[i].handler();
+            commandTable[i].handler(doc); // ПЕРЕДАЄМО doc ОСЬ ТУТ!
             return;
         }
     }
