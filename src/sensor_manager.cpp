@@ -7,23 +7,6 @@ SensorManager::SensorManager()
         sensors[i].isPaired = false;
     }
 }
-bool SensorManager::removeSensorById(int id)
-{
-    for (int i = 0; i < MAX_SENSORS; i++)
-    {
-        if (sensors[i].isPaired && sensors[i].id == id)
-        {
-            sensors[i].isPaired = false;
-            sensorCount--;
-
-            saveSensors();
-            Serial.printf("Sensor ID %d successfully removed.\n", id);
-            return true;
-        }
-    }
-    Serial.printf("Error: Sensor ID %d not found.\n", id);
-    return false;
-}
 
 void SensorManager::init()
 {
@@ -68,7 +51,7 @@ int SensorManager::findSensorByMac(const uint8_t *macAddr)
     {
         if (sensors[i].isPaired && memcmp(sensors[i].mac, macAddr, 6) == 0)
         {
-            return i;
+            return sensors[i].id;
         }
     }
     return -1;
@@ -76,11 +59,11 @@ int SensorManager::findSensorByMac(const uint8_t *macAddr)
 
 int SensorManager::registerNewSensor(const uint8_t *macAddr, uint8_t type, float battery)
 {
-    int existingIdx = findSensorByMac(macAddr);
-    if (existingIdx != -1)
+    int existingId = findSensorByMac(macAddr);
+    if (existingId != -1)
     {
-        updateSensorHeartbeat(existingIdx, battery);
-        return existingIdx;
+        updateSensorHeartbeat(existingId, battery);
+        return existingId;
     }
 
     for (int i = 0; i < MAX_SENSORS; i++)
@@ -101,28 +84,30 @@ int SensorManager::registerNewSensor(const uint8_t *macAddr, uint8_t type, float
             saveSensors();
             Serial.printf("New Sensor Registered: ID %d\n", sensors[i].id);
 
-            return i;
+            return sensors[i].id;
         }
     }
     Serial.println("Error: No free slots for new sensor!");
     return -1;
 }
 
-void SensorManager::updateSensorHeartbeat(int index, float battery)
+void SensorManager::updateSensorHeartbeat(int id, float battery)
 {
-    if (index >= 0 && index < MAX_SENSORS && sensors[index].isPaired)
+    SensorNode *node = getSensorById(id);
+    if (node != nullptr)
     {
-        sensors[index].lastSeen = millis();
-        sensors[index].batteryVolts = battery;
+        node->lastSeen = millis();
+        node->batteryVolts = battery;
     }
 }
 
-void SensorManager::updateSensorState(int index, bool newState)
+void SensorManager::updateSensorState(int id, bool newState)
 {
-    if (index >= 0 && index < MAX_SENSORS && sensors[index].isPaired)
+    SensorNode *node = getSensorById(id);
+    if (node != nullptr)
     {
-        sensors[index].state = newState ? 1 : 0;
-        sensors[index].lastSeen = millis();
+        node->state = newState ? 1 : 0;
+        node->lastSeen = millis();
     }
 }
 
@@ -135,11 +120,55 @@ SensorNode *SensorManager::getSensor(int index)
     return nullptr;
 }
 
-bool SensorManager::isSensorOffline(int index)
+SensorNode *SensorManager::getSensorById(int id)
 {
-    if (!sensors[index].isPaired)
+    for (int i = 0; i < MAX_SENSORS; i++)
+    {
+        if (sensors[i].isPaired && sensors[i].id == id)
+        {
+            return &sensors[i];
+        }
+    }
+    return nullptr;
+}
+
+bool SensorManager::isSensorOffline(int id)
+{
+    SensorNode *node = getSensorById(id);
+    if (node == nullptr)
         return true;
-    return (millis() - sensors[index].lastSeen) > PAIRING_TIMEOUT;
+    return (millis() - node->lastSeen) > PAIRING_TIMEOUT;
+}
+
+bool SensorManager::removeSensorById(int id)
+{
+    for (int i = 0; i < MAX_SENSORS; i++)
+    {
+        if (sensors[i].isPaired && sensors[i].id == id)
+        {
+            sensors[i].isPaired = false;
+            sensorCount--;
+
+            saveSensors();
+            Serial.printf("Sensor ID %d successfully removed.\n", id);
+            return true;
+        }
+    }
+    Serial.printf("Error: Sensor ID %d not found.\n", id);
+    return false;
+}
+
+bool SensorManager::updateSensorName(int id, const char *newName)
+{
+    SensorNode *node = getSensorById(id);
+    if (node != nullptr)
+    {
+        strncpy(node->name, newName, sizeof(node->name) - 1);
+        node->name[sizeof(node->name) - 1] = '\0';
+        saveSensors();
+        return true;
+    }
+    return false;
 }
 
 String SensorManager::macToString(const uint8_t *mac)

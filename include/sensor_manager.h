@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 #include <WiFi.h>
-#include <Preferences.h> // ДОДАНО
+#include <Preferences.h>
 #include "structure_sensor.h"
 
 #define MAX_SENSORS 10
@@ -14,7 +14,7 @@ class SensorManager
 private:
     SensorNode sensors[MAX_SENSORS];
     int sensorCount = 0;
-    Preferences pref; // ДОДАНО об'єкт для роботи з пам'яттю
+    Preferences pref;
 
 public:
     SensorManager();
@@ -22,14 +22,15 @@ public:
     void init();
     void saveSensors();
     bool removeSensorById(int id);
-
     int findSensorByMac(const uint8_t *macAddr);
     int registerNewSensor(const uint8_t *macAddr, uint8_t type, float battery);
-    void updateSensorHeartbeat(int index, float battery);
-    void updateSensorState(int index, bool newState);
+    void updateSensorHeartbeat(int id, float battery);
+    void updateSensorState(int id, bool newState);
+    bool isSensorOffline(int id);
     SensorNode *getSensor(int index);
-    bool isSensorOffline(int index);
     String macToString(const uint8_t *mac);
+    bool updateSensorName(int id, const char *newName);
+    SensorNode *getSensorById(int id);
 };
 
 extern SensorManager sensorManager;

@@ -66,11 +66,6 @@ void MQTTManager::connect()
     }
 }
 
-// bool MQTTManager::isConnected()
-// {
-//     return mqttClient.connected();
-// }
-
 void MQTTManager::handle()
 {
     // Обробка вхідних повідомлень

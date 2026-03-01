@@ -46,14 +46,29 @@ bool shouldTriggerAlarm(SensorNode *s, int state)
 {
     if (state == 0)
         return false;
-
+    if (currentSystemState == DISARMED)
+        return false;
     if (currentSystemState == ARMED_FULL)
         return true;
-
     if (currentSystemState == ARMED_PARTIAL)
     {
         if (s->type == SENSOR_TYPE_REED)
             return true;
+    }
+
+    if (currentSystemState == ARMED_GROUP)
+    {
+        for (int i = 0; i < activeGroupSensorsCount; i++)
+        {
+            if (activeGroupSensors[i] == s->id)
+            {
+                Serial.printf("ALARM! Sensor ID %d is in the active group list!\n", s->id);
+                return true;
+            }
+        }
+
+        Serial.printf("Sensor ID %d ignored (not in armed groups).\n", s->id);
+        return false;
     }
 
     return false;
@@ -66,22 +81,25 @@ void handlePairingRequest(const uint8_t *mac, uint8_t rawType, float battery)
         return;
     }
 
+    sendPairingReply(mac);
+
     uint8_t realType = rawType - PAIRING_OFFSET;
     int newIdx = sensorManager.registerNewSensor(mac, realType, battery);
 
     if (newIdx != -1)
     {
-        sendPairingReply(mac);
         mqttManager.publish("home/events", "{\"event\":\"new_device_paired\"}");
     }
 }
 
-void handleKnownSensorData(int idx, const struct_message &data)
+void handleKnownSensorData(int sensorId, const struct_message &data)
 {
-    sensorManager.updateSensorHeartbeat(idx, data.battery);
-    sensorManager.updateSensorState(idx, data.state);
 
-    SensorNode *s = sensorManager.getSensor(idx);
+    sensorManager.updateSensorHeartbeat(sensorId, data.battery);
+    sensorManager.updateSensorState(sensorId, data.state);
+
+    SensorNode *s = sensorManager.getSensorById(sensorId);
+
     if (s == nullptr)
         return;
 
@@ -112,11 +130,11 @@ void OnDataRecv(const uint8_t *mac, const uint8_t *incomingDataPtr, int len)
         return;
     }
 
-    int idx = sensorManager.findSensorByMac(mac);
+    int sensorId = sensorManager.findSensorByMac(mac);
 
-    if (idx != -1)
+    if (sensorId != -1)
     {
-        handleKnownSensorData(idx, incomingData);
+        handleKnownSensorData(sensorId, incomingData);
     }
     else
     {

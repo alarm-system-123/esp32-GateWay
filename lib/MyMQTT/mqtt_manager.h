@@ -14,8 +14,7 @@ private:
 public:
     void begin();
     void connect();
-    // bool isConnected();
-    void handle(); // mqttClient.loop()
+    void handle();
 
     void publish(const char *topic, const char *payload);
     void subscribe(const char *topic);
