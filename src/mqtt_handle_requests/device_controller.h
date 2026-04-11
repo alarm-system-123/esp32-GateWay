@@ -4,6 +4,7 @@
 
 void armSystem(const JsonDocument &doc);
 void disarmSystem(const JsonDocument &doc);
+void statusSystem(const JsonDocument &doc);
 void sensorStatus(const JsonDocument &doc);
 void armPartial(const JsonDocument &doc);
 void armGroup(const JsonDocument &doc);

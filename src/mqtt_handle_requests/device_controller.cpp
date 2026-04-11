@@ -5,6 +5,7 @@
 #include "mqtt_manager.h"
 #include "topics.h"
 #include "system_state.h"
+#include "globals.h"
 
 int activeGroupSensors[MAX_SENSORS];
 int activeGroupSensorsCount = 0;
@@ -61,6 +62,7 @@ void armSystem(const JsonDocument &doc)
     digitalWrite(LED_BUILTIN, HIGH);
     currentSystemState = ARMED_FULL;
     mqttManager.publishStatus("armed");
+    preferences.putInt("mode", currentSystemState);
 }
 
 void disarmSystem(const JsonDocument &doc)
@@ -69,6 +71,33 @@ void disarmSystem(const JsonDocument &doc)
     currentSystemState = DISARMED;
     activeGroupSensorsCount = 0;
     mqttManager.publishStatus("disarmed");
+    preferences.putInt("mode", currentSystemState);
+}
+
+void statusSystem(const JsonDocument &doc)
+{
+    const char *system_status;
+
+    switch (currentSystemState)
+    {
+    case ARMED_FULL:
+        system_status = "armed";
+        break;
+    case ARMED_PARTIAL:
+        system_status = "armed_partial";
+        break;
+    case ARMED_GROUP:
+        system_status = "armed_group";
+        break;
+    case PAIRING_MODE:
+        system_status = "pairing mode";
+        break;
+    default:
+        system_status = "disarmed";
+        break;
+    }
+
+    mqttManager.publishStatus(system_status);
 }
 
 void armPartial(const JsonDocument &doc)
@@ -76,12 +105,14 @@ void armPartial(const JsonDocument &doc)
     digitalWrite(LED_BUILTIN, HIGH);
     currentSystemState = ARMED_PARTIAL;
     mqttManager.publishStatus("partial armed");
+    preferences.putInt("mode", currentSystemState);
 }
 
 void addSensor(const JsonDocument &doc)
 {
     currentSystemState = PAIRING_MODE;
     Serial.println("System is in PAIRING_MODE");
+    preferences.putInt("mode", currentSystemState);
 }
 void sensorStatus(const JsonDocument &requestDoc)
 {

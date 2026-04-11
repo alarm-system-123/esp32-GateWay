@@ -7,6 +7,8 @@ String TOPIC_SENSORS;
 // String TOPIC_EVENTS;
 String TOPIC_COMMANDS;
 // String TOPIC_PAIRING;
+String TOPIC_GATEWAY_STATUS;
+String TOPIC_MODE_STATUS;
 void initTopics()
 {
     deviceId = WiFi.macAddress();
@@ -16,4 +18,6 @@ void initTopics()
     // TOPIC_EVENTS = deviceId + "/alarm/events";
     TOPIC_COMMANDS = deviceId + "/alarm/commands";
     // TOPIC_PAIRING = deviceId + "/alarm/pairing";
+    TOPIC_GATEWAY_STATUS = deviceId + "/system/gateway/status";
+    TOPIC_MODE_STATUS = deviceId + "/system/mode/status";
 }

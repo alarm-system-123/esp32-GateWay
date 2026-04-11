@@ -2,10 +2,10 @@
 #include "../../include/topics.h"
 #include "../../include/config.h"
 #include <ArduinoJson.h>
+#include "../../include/system_state.h"
 
 void MQTTManager::begin()
 {
-    // Ініціалізація MQTT клієнта
     mqttClient.setClient(wifiClient);
     mqttClient.setServer(MQTT_BROKER, MQTT_PORT);
 
@@ -28,59 +28,75 @@ void MQTTManager::connect()
 
     bool connected = false;
 
-    // Підключення з або без credentials
+    const char *lwtMessage = "{\"gateway_status\":\"offline\",\"device\":\"main_controller\"}";
+
     if (strlen(MQTT_USER) > 0)
     {
-        connected = mqttClient.connect(MQTT_CLIENT_ID, MQTT_USER, MQTT_PASSWORD);
+        connected = mqttClient.connect(
+            MQTT_CLIENT_ID,
+            MQTT_USER,
+            MQTT_PASSWORD,
+            TOPIC_GATEWAY_STATUS.c_str(),
+            1,
+            true,
+            lwtMessage);
     }
     else
     {
-        connected = mqttClient.connect(MQTT_CLIENT_ID);
+        connected = mqttClient.connect(
+            MQTT_CLIENT_ID,
+            TOPIC_GATEWAY_STATUS.c_str(),
+            1,
+            true,
+            lwtMessage);
     }
 
     if (connected)
     {
         Serial.println(" connected!");
+        mqttClient.publish(
+            TOPIC_GATEWAY_STATUS.c_str(),
+            "{\"gateway_status\":\"online\",\"device\":\"main_controller\"}",
+            true);
 
-        // Публікуємо статус "online"
-        publish(TOPIC_STATUS.c_str(), "{\"status\":\"online\",\"device\":\"main_controller\"}");
-
-        // Підписуємось на топік команд
         subscribe(TOPIC_COMMANDS.c_str());
+
+        switch (currentSystemState)
+        {
+        case ARMED_FULL:
+            publishStatus("armed");
+            break;
+        case ARMED_PARTIAL:
+            publishStatus("armed_partial");
+            break;
+        case ARMED_GROUP:
+            publishStatus("armed_group");
+            break;
+        default:
+            publishStatus("disarmed");
+            break;
+        }
     }
     else
     {
         Serial.print(" failed! State: ");
         Serial.println(mqttClient.state());
-        // Коди помилок:
-        // -4 : MQTT_CONNECTION_TIMEOUT
-        // -3 : MQTT_CONNECTION_LOST
-        // -2 : MQTT_CONNECT_FAILED
-        // -1 : MQTT_DISCONNECTED
-        //  0 : MQTT_CONNECTED
-        //  1 : MQTT_CONNECT_BAD_PROTOCOL
-        //  2 : MQTT_CONNECT_BAD_CLIENT_ID
-        //  3 : MQTT_CONNECT_UNAVAILABLE
-        //  4 : MQTT_CONNECT_BAD_CREDENTIALS
-        //  5 : MQTT_CONNECT_UNAUTHORIZED
     }
 }
 
 void MQTTManager::handle()
 {
-    // Обробка вхідних повідомлень
     if (mqttClient.connected())
     {
         mqttClient.loop();
     }
     else
     {
-        // Автоматичне перепідключення
         static unsigned long lastReconnectAttempt = 0;
         unsigned long now = millis();
 
         if (now - lastReconnectAttempt > 5000)
-        { // Спроба кожні 5 секунд
+        {
             lastReconnectAttempt = now;
             Serial.println("MQTT disconnected. Attempting to reconnect...");
             connect();
@@ -143,5 +159,5 @@ void MQTTManager::publishStatus(const char *status)
     char buffer[128];
     serializeJson(doc, buffer);
 
-    publish(TOPIC_STATUS.c_str(), buffer);
+    mqttClient.publish(TOPIC_MODE_STATUS.c_str(), buffer, true);
 }

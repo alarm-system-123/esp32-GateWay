@@ -6,6 +6,7 @@ CommandEntry commandTable[] = {
     {"cmd", "arm", armSystem},
     {"cmd", "disarm", disarmSystem},
     {"cmd", "partial", armPartial},
+    {"cmd", "system_status", statusSystem},
     {"sensor", "sensor_status", sensorStatus},
     {"sensor", "add_sensor", addSensor},
     {"sensor", "remove_sensor", removeSensor},
@@ -29,7 +30,7 @@ void handleCommand(const JsonDocument &doc)
         if (strcmp(cmd, commandTable[i].cmd) == 0 &&
             strcmp(action, commandTable[i].action) == 0)
         {
-            commandTable[i].handler(doc); // ПЕРЕДАЄМО doc ОСЬ ТУТ!
+            commandTable[i].handler(doc);
             return;
         }
     }
