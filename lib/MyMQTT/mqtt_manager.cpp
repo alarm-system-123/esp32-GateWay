@@ -3,6 +3,7 @@
 #include "../../include/config.h"
 #include <ArduinoJson.h>
 #include "../../include/system_state.h"
+#include "../../include/device_controller.h"
 
 void MQTTManager::begin()
 {
@@ -57,7 +58,7 @@ void MQTTManager::connect()
         mqttClient.publish(
             TOPIC_GATEWAY_STATUS.c_str(),
             "{\"gateway_status\":\"online\",\"device\":\"main_controller\"}",
-            true);
+            true); // true = Retained повідомлення, це дуже добре!
 
         subscribe(TOPIC_COMMANDS.c_str());
 
@@ -76,6 +77,7 @@ void MQTTManager::connect()
             publishStatus("disarmed");
             break;
         }
+        sensorStatus();
     }
     else
     {

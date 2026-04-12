@@ -7,11 +7,10 @@ CommandEntry commandTable[] = {
     {"cmd", "disarm", disarmSystem},
     {"cmd", "partial", armPartial},
     {"cmd", "system_status", statusSystem},
-    {"sensor", "sensor_status", sensorStatus},
+    // {"sensor", "sensor_status", sensorStatus},
     {"sensor", "add_sensor", addSensor},
     {"sensor", "remove_sensor", removeSensor},
-    {"sensor", "update_config", updateSensorConfig},
-    {"cmd", "arm_group", armGroup}};
+    {"sensor", "update_config", updateSensorConfig}};
 const size_t commandCount = sizeof(commandTable) / sizeof(commandTable[0]);
 
 void handleCommand(const JsonDocument &doc)

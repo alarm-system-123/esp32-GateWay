@@ -3,7 +3,7 @@
 #include <Arduino.h>
 #include "config.h"
 #include "topics.h"
-
+#include "device_controller.h"
 #include "system_state.h"
 
 // WIFI Connection
@@ -23,6 +23,9 @@ MQTTManager mqttManager;
 SensorManager sensorManager;
 Preferences preferences;
 SystemState currentSystemState;
+
+unsigned long lastSensorReportTime = 0;
+const unsigned long SENSOR_REPORT_INTERVAL = 3600000;
 
 void updateHardwareState()
 {
@@ -91,4 +94,9 @@ void loop()
   wifiManager.handle();
   mqttManager.handle();
   delay(10);
+  if (millis() - lastSensorReportTime >= SENSOR_REPORT_INTERVAL)
+  {
+    lastSensorReportTime = millis();
+    sensorStatus();
+  }
 }

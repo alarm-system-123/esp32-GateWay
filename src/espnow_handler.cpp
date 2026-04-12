@@ -1,5 +1,6 @@
 #include "espnow_handler.h"
 #include <esp_now.h>
+#include <ArduinoJson.h>
 #include "message_structure.h"
 #include "sensor_manager.h"
 #include "mqtt_manager.h"
@@ -23,23 +24,28 @@ static void sendPairingReply(const uint8_t *macAddr)
     esp_now_send(macAddr, (uint8_t *)&incomingData, sizeof(incomingData));
 }
 
-static void sendSensorToMqtt(SensorNode *s, bool isAlarm)
+static void publishSingleSensor(SensorNode *node)
 {
-    if (s == nullptr)
+    if (node == nullptr)
         return;
 
-    String topic = String("home/sensors/") + String(s->id);
+    JsonDocument responseDoc;
+    responseDoc["id"] = node->id;
+    responseDoc["name"] = node->name;
+    responseDoc["type"] = node->type;
+    responseDoc["state"] = (bool)node->state; // Перетворюємо int (0/1) на true/false
+    responseDoc["bat"] = node->batteryVolts;
+    responseDoc["online"] = !sensorManager.isSensorOffline(node->id);
+    responseDoc["mac"] = sensorManager.macToString(node->mac);
 
-    String statusStr = isAlarm ? "ALARM" : "OK";
-    String typeStr = (s->type == SENSOR_TYPE_IR) ? "IR" : "REED";
+    String payload;
+    serializeJson(responseDoc, payload);
 
-    String payload = "{";
-    payload += "\"status\":\"" + statusStr + "\",";
-    payload += "\"type\":\"" + typeStr + "\",";
-    payload += "\"bat\":" + String(s->batteryVolts, 2);
-    payload += "}";
-
+    // Публікуємо в новий правильний топік
+    String topic = "sensors/" + String(node->id) + "/status";
     mqttManager.publish(topic.c_str(), payload.c_str());
+
+    Serial.printf("📡 Відправлено в MQTT -> %s: %s\n", topic.c_str(), payload.c_str());
 }
 
 bool shouldTriggerAlarm(SensorNode *s, int state)
@@ -50,6 +56,7 @@ bool shouldTriggerAlarm(SensorNode *s, int state)
         return false;
     if (currentSystemState == ARMED_FULL)
         return true;
+
     if (currentSystemState == ARMED_PARTIAL)
     {
         if (s->type == SENSOR_TYPE_REED)
@@ -66,20 +73,16 @@ bool shouldTriggerAlarm(SensorNode *s, int state)
                 return true;
             }
         }
-
         Serial.printf("Sensor ID %d ignored (not in armed groups).\n", s->id);
         return false;
     }
-
     return false;
 }
 
 void handlePairingRequest(const uint8_t *mac, uint8_t rawType, float battery)
 {
     if (currentSystemState != PAIRING_MODE)
-    {
         return;
-    }
 
     sendPairingReply(mac);
 
@@ -88,13 +91,18 @@ void handlePairingRequest(const uint8_t *mac, uint8_t rawType, float battery)
 
     if (newIdx != -1)
     {
-        mqttManager.publish("home/events", "{\"event\":\"new_device_paired\"}");
+        // Повідомляємо про успішне спарення
+        mqttManager.publish("system/events", "{\"event\":\"new_device_paired\"}"); // Змінив home/events на system/events для порядку
+
+        // +++ МИТТЄВО ПУБЛІКУЄМО НОВИЙ ДАТЧИК +++
+        // Щоб він одразу з'явився в мобільному додатку без перезавантаження хаба
+        SensorNode *newNode = sensorManager.getSensor(newIdx);
+        publishSingleSensor(newNode);
     }
 }
 
 void handleKnownSensorData(int sensorId, const struct_message &data)
 {
-
     sensorManager.updateSensorHeartbeat(sensorId, data.battery);
     sensorManager.updateSensorState(sensorId, data.state);
 
@@ -103,11 +111,17 @@ void handleKnownSensorData(int sensorId, const struct_message &data)
     if (s == nullptr)
         return;
 
-    bool isAlarm = shouldTriggerAlarm(s, data.state);
+    // +++ ЗАВЖДИ ПУБЛІКУЄМО СТАН ДАТЧИКА В MQTT +++
+    // Навіть якщо система знята з охорони, телефон має бачити заряд батареї та відкриття дверей
+    publishSingleSensor(s);
 
+    // Локальна логіка тривоги (для включення фізичної сирени на самому ESP32)
+    bool isAlarm = shouldTriggerAlarm(s, data.state);
     if (isAlarm)
     {
-        sendSensorToMqtt(s, isAlarm);
+        Serial.println("🚨 ТРИВОГА! Локальне спрацювання умов охорони!");
+        // Тут ви можете додати код увімкнення фізичної сирени (наприклад, digitalWrite(SIREN_PIN, HIGH);)
+        // Python-сервер також зловить повідомлення вище і відправить Push-сповіщення
     }
 }
 

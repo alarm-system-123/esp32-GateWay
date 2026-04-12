@@ -9,53 +9,7 @@
 
 int activeGroupSensors[MAX_SENSORS];
 int activeGroupSensorsCount = 0;
-void armGroup(const JsonDocument &doc)
-{
-    // 1. Перевіряємо, чи прислали нам масив
-    if (!doc["active_sensors"].is<JsonArrayConst>())
-    {
-        Serial.println("Error: Missing or invalid 'active_sensors' array");
-        return;
-    }
-
-    JsonArrayConst sensorsArray = doc["active_sensors"].as<JsonArrayConst>();
-
-    // 2. Проходимося по кожному ID, який прилетів у масиві
-    for (JsonVariantConst v : sensorsArray)
-    {
-        if (!v.is<int>())
-            continue; // Пропускаємо, якщо це не число
-
-        int incomingId = v.as<int>();
-        bool alreadyExists = false;
-
-        // 3. Перевіряємо, чи немає цього датчика ВЖЕ в нашому списку охорони
-        for (int i = 0; i < activeGroupSensorsCount; i++)
-        {
-            if (activeGroupSensors[i] == incomingId)
-            {
-                alreadyExists = true;
-                break; // Знайшли дублікат, зупиняємо пошук для цього ID
-            }
-        }
-
-        // 4. Якщо датчика ще немає в списку і є вільне місце — додаємо
-        if (!alreadyExists && activeGroupSensorsCount < MAX_SENSORS)
-        {
-            activeGroupSensors[activeGroupSensorsCount] = incomingId;
-            activeGroupSensorsCount++;
-        }
-    }
-
-    // 5. Вмикаємо режим охорони для групи
-    currentSystemState = ARMED_GROUP;
-    digitalWrite(LED_BUILTIN, HIGH); // Вмикаємо світлодіод охорони
-
-    Serial.printf("System ARMED (Group). Total active sensors monitoring: %d\n", activeGroupSensorsCount);
-
-    // Сповіщаємо сервер
-    mqttManager.publish("home/alarm/status", "{\"status\":\"armed_group\"}");
-}
+String deviceId = WiFi.macAddress();
 
 void armSystem(const JsonDocument &doc)
 {
@@ -114,31 +68,39 @@ void addSensor(const JsonDocument &doc)
     Serial.println("System is in PAIRING_MODE");
     preferences.putInt("mode", currentSystemState);
 }
-void sensorStatus(const JsonDocument &requestDoc)
+
+void publishSingleSensor(SensorNode *node)
+{
+    if (node == nullptr)
+        return;
+
+    JsonDocument responseDoc;
+    responseDoc["id"] = node->id;
+    responseDoc["name"] = node->name;
+    responseDoc["type"] = node->type;
+    responseDoc["state"] = (bool)node->state;
+    responseDoc["bat"] = node->batteryVolts;
+    responseDoc["online"] = !sensorManager.isSensorOffline(node->id);
+    responseDoc["mac"] = sensorManager.macToString(node->mac);
+
+    String payload;
+    serializeJson(responseDoc, payload);
+
+    String topic = deviceId + "/sensors/" + String(node->id) + "/status";
+    mqttManager.publish(topic.c_str(), payload.c_str());
+
+    Serial.printf("Published to %s: %s\n", topic.c_str(), payload.c_str());
+}
+
+void sensorStatus()
 {
     Serial.println("Publishing status for all sensors...");
-
     for (int i = 0; i < MAX_SENSORS; i++)
     {
         SensorNode *node = sensorManager.getSensor(i);
-
         if (node != nullptr && node->isPaired)
         {
-            JsonDocument responseDoc;
-            responseDoc["id"] = node->id;
-            responseDoc["name"] = node->name;
-            responseDoc["type"] = node->type;
-            responseDoc["state"] = node->state;
-            responseDoc["bat"] = node->batteryVolts;
-            responseDoc["online"] = !sensorManager.isSensorOffline(node->id);
-            responseDoc["mac"] = sensorManager.macToString(node->mac);
-
-            String payload;
-            serializeJson(responseDoc, payload);
-            String topic = "sensors/" + String(node->id) + "/status";
-            mqttManager.publish(topic.c_str(), payload.c_str());
-
-            Serial.printf("Published to %s\n", topic.c_str());
+            publishSingleSensor(node);
         }
     }
 }
