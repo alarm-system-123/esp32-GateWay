@@ -10,5 +10,6 @@ struct SensorNode
     bool state;             // Поточний стан: true (Тривога/Відкрито), false (Спокій/Закрито)
     float batteryVolts;     // Напруга батареї (наприклад, 4.12 V)
     unsigned long lastSeen; // Час останнього контакту (millis()) для перевірки онлайну
-    char name[20];          // Зручна назва, наприклад "Kitchen"
+    bool isReportedOffline;
+    char name[20]; // Зручна назва, наприклад "Kitchen"
 };

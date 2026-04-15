@@ -8,5 +8,6 @@ extern String TOPIC_MODE_STATUS;
 
 // sensors
 extern String TOPIC_SENSORS;
-
+extern String REGISTER_NEW_SENSOR;
+extern String TOPIC_SENSORS_BASE;
 void initTopics();

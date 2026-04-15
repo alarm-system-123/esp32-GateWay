@@ -5,6 +5,7 @@
 #include "sensor_manager.h"
 #include "mqtt_manager.h"
 #include "system_state.h"
+#include "topics.h"
 
 #define PAIRING_OFFSET 100
 
@@ -40,9 +41,8 @@ static void publishSingleSensor(SensorNode *node)
 
     String payload;
     serializeJson(responseDoc, payload);
+    String topic = TOPIC_SENSORS_BASE + String(node->id) + "/status";
 
-    // Публікуємо в новий правильний топік
-    String topic = "sensors/" + String(node->id) + "/status";
     mqttManager.publish(topic.c_str(), payload.c_str());
 
     Serial.printf("📡 Відправлено в MQTT -> %s: %s\n", topic.c_str(), payload.c_str());
@@ -91,11 +91,7 @@ void handlePairingRequest(const uint8_t *mac, uint8_t rawType, float battery)
 
     if (newIdx != -1)
     {
-        // Повідомляємо про успішне спарення
-        mqttManager.publish("system/events", "{\"event\":\"new_device_paired\"}"); // Змінив home/events на system/events для порядку
-
-        // +++ МИТТЄВО ПУБЛІКУЄМО НОВИЙ ДАТЧИК +++
-        // Щоб він одразу з'явився в мобільному додатку без перезавантаження хаба
+        mqttManager.publish(REGISTER_NEW_SENSOR.c_str(), "{\"event\":\"new_device_paired\"}");
         SensorNode *newNode = sensorManager.getSensor(newIdx);
         publishSingleSensor(newNode);
     }

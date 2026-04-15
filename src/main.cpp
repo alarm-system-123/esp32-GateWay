@@ -27,6 +27,42 @@ SystemState currentSystemState;
 unsigned long lastSensorReportTime = 0;
 const unsigned long SENSOR_REPORT_INTERVAL = 3600000;
 
+// Налаштування: якщо датчик мовчить більше 70 хвилин (годину спить + 10 хв запас)
+const unsigned long OFFLINE_THRESHOLD = 4200000;
+unsigned long lastWatchdogCheck = 0;
+const unsigned long WATCHDOG_INTERVAL = 30000; // Перевіряти кожні 30 сек
+
+void checkSensorsHealth()
+{
+  if (millis() - lastWatchdogCheck < WATCHDOG_INTERVAL)
+    return;
+  lastWatchdogCheck = millis();
+
+  for (int i = 0; i < MAX_SENSORS; i++)
+  {
+    SensorNode *s = sensorManager.getSensor(i);
+    if (s != nullptr && s->isPaired)
+    {
+
+      bool isTimeout = (millis() - s->lastSeen > OFFLINE_THRESHOLD);
+
+      // Якщо датчик зник і ми ще про це не звітували
+      if (isTimeout && !s->isReportedOffline)
+      {
+        s->isReportedOffline = true;
+        Serial.printf("⚠️ Sensor %d is OFFLINE\n", s->id);
+        sensorStatus(); // Відправляємо оновлений статус (де online буде false)
+      }
+      // Якщо датчик прокинувся після "смерті"
+      else if (!isTimeout && s->isReportedOffline)
+      {
+        s->isReportedOffline = false;
+        Serial.printf("✅ Sensor %d is back ONLINE\n", s->id);
+      }
+    }
+  }
+}
+
 void updateHardwareState()
 {
   switch (currentSystemState)
@@ -93,7 +129,9 @@ void loop()
 {
   wifiManager.handle();
   mqttManager.handle();
-  delay(10);
+
+  checkSensorsHealth();
+
   if (millis() - lastSensorReportTime >= SENSOR_REPORT_INTERVAL)
   {
     lastSensorReportTime = millis();
