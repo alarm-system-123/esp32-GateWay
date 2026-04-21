@@ -110,29 +110,33 @@ void removeSensor(const JsonDocument &doc)
     if (!doc["id"].is<int>())
     {
         Serial.println("Error: No 'id' provided for remove_sensor");
-        mqttManager.publish("home/events", "{\"event\":\"error\", \"message\":\"Missing sensor ID\"}");
         return;
     }
 
     int sensorId = doc["id"].as<int>();
-
-    if (sensorId > 0)
+    if (sensorId >= 0)
     {
         bool success = sensorManager.removeSensorById(sensorId);
 
         if (success)
         {
+            sensorManager.saveSensors();
+
+            Serial.printf("🗑 Датчик %d успішно видалено\n", sensorId);
+
             JsonDocument responseDoc;
             responseDoc["event"] = "sensor_removed";
             responseDoc["id"] = sensorId;
 
             String payload;
             serializeJson(responseDoc, payload);
-            mqttManager.publish("home/events", payload.c_str());
+
+            String topic = deviceId + "/system/events";
+            mqttManager.publish(topic.c_str(), payload.c_str());
         }
         else
         {
-            mqttManager.publish("home/events", "{\"event\":\"error\", \"message\":\"Sensor not found\"}");
+            Serial.printf("⚠️ Error: Sensor %d not found for removal\n", sensorId);
         }
     }
 }
@@ -148,39 +152,26 @@ void updateSensorConfig(const JsonDocument &doc)
     int sensorId = doc["id"].as<int>();
     const char *newName = doc["name"].as<const char *>();
 
-    if (sensorId > 0 && newName != nullptr)
+    if (sensorId >= 0 && newName != nullptr)
     {
         bool success = sensorManager.updateSensorName(sensorId, newName);
 
         if (success)
         {
-            Serial.printf("Sensor ID %d successfully renamed to '%s'\n", sensorId, newName);
+            sensorManager.saveSensors();
+
+            Serial.printf("✏️ Sensor ID %d successfully renamed to '%s'\n", sensorId, newName);
 
             SensorNode *node = sensorManager.getSensorById(sensorId);
 
             if (node != nullptr)
             {
-                JsonDocument responseDoc;
-                responseDoc["id"] = node->id;
-                responseDoc["name"] = node->name;
-                responseDoc["type"] = node->type;
-                responseDoc["state"] = node->state;
-                responseDoc["bat"] = node->batteryVolts;
-
-                responseDoc["online"] = !sensorManager.isSensorOffline(node->id);
-
-                responseDoc["mac"] = sensorManager.macToString(node->mac);
-
-                String payload;
-                serializeJson(responseDoc, payload);
-                String topic = "sensors/" + String(node->id) + "/status";
-                mqttManager.publish(topic.c_str(), payload.c_str());
+                publishSingleSensor(node);
             }
         }
         else
         {
             Serial.printf("Error: Could not find paired sensor with ID %d\n", sensorId);
-            mqttManager.publish("home/events", "{\"event\":\"error\", \"message\":\"Sensor not found for update\"}");
         }
     }
 }

@@ -96,7 +96,6 @@ void handlePairingRequest(const uint8_t *mac, uint8_t rawType, float battery)
         publishSingleSensor(newNode);
     }
 }
-
 void handleKnownSensorData(int sensorId, const struct_message &data)
 {
     sensorManager.updateSensorHeartbeat(sensorId, data.battery);
@@ -107,17 +106,22 @@ void handleKnownSensorData(int sensorId, const struct_message &data)
     if (s == nullptr)
         return;
 
-    // +++ ЗАВЖДИ ПУБЛІКУЄМО СТАН ДАТЧИКА В MQTT +++
-    // Навіть якщо система знята з охорони, телефон має бачити заряд батареї та відкриття дверей
     publishSingleSensor(s);
 
-    // Локальна логіка тривоги (для включення фізичної сирени на самому ESP32)
     bool isAlarm = shouldTriggerAlarm(s, data.state);
     if (isAlarm)
     {
-        Serial.println("🚨 ТРИВОГА! Локальне спрацювання умов охорони!");
-        // Тут ви можете додати код увімкнення фізичної сирени (наприклад, digitalWrite(SIREN_PIN, HIGH);)
-        // Python-сервер також зловить повідомлення вище і відправить Push-сповіщення
+        Serial.printf("🚨 ТРИВОГА! Спрацював датчик: %s\n", s->name);
+
+        JsonDocument alarmDoc;
+        alarmDoc["event"] = "alarm";
+        alarmDoc["sensor_id"] = s->id;
+        alarmDoc["sensor_name"] = s->name;
+
+        String alarmPayload;
+        serializeJson(alarmDoc, alarmPayload);
+        String alarmTopic = REGISTER_NEW_SENSOR;
+        mqttManager.publish(alarmTopic.c_str(), alarmPayload.c_str());
     }
 }
 
