@@ -2,13 +2,15 @@
 #ifndef MQTT_MANAGER_H
 #define MQTT_MANAGER_H
 
+#include <Ethernet.h> // Замість WiFiClient.h
 #include <PubSubClient.h>
-#include <WiFi.h>
 
 class MQTTManager
 {
 private:
-    WiFiClient wifiClient;
+    // WiFiClient wifiClient;
+    // PubSubClient mqttClient;
+    EthernetClient ethClient;
     PubSubClient mqttClient;
 
 public:

@@ -1,63 +1,83 @@
 #include "wifi_manager.h"
 #include "../../include/config.h"
+#include <SPI.h>
+#include <Ethernet.h>
+#include <WiFi.h>
+
+#define W5500_CS_PIN 5 // Пін CS для твоєї плати (D5)
+
+byte eth_mac[6]; // Масив для зберігання рідної MAC-адреси
 
 void WiFiManager::begin()
 {
+    // 1. Вмикаємо Wi-Fi радіо для ESP-NOW, але відключаємось від роутерів
     WiFi.mode(WIFI_STA);
-    Serial.println("WiFi Manager initialized");
+    WiFi.disconnect();
+    Serial.println("WiFi radio initialized for ESP-NOW");
+
+    // 2. Отримуємо рідну MAC-адресу ESP32 і зберігаємо в масив
+    WiFi.macAddress(eth_mac);
+    Serial.printf("Використовуємо MAC ESP32 для Ethernet: %02X:%02X:%02X:%02X:%02X:%02X\n",
+                  eth_mac[0], eth_mac[1], eth_mac[2], eth_mac[3], eth_mac[4], eth_mac[5]);
+
+    // 3. Ініціалізуємо модуль W5500
+    Ethernet.init(W5500_CS_PIN);
+    Serial.println("Ethernet Manager initialized");
 }
 
 void WiFiManager::connect()
 {
-    if (WiFi.status() == WL_CONNECTED)
+    // Перевіряємо, чи є лінк на кабелі і чи видана IP-адреса
+    if (Ethernet.linkStatus() == LinkON && Ethernet.localIP() != IPAddress(0, 0, 0, 0))
     {
-        Serial.println("Already connected to WiFi");
+        Serial.println("Already connected to Ethernet");
         return;
     }
 
-    Serial.print("Connecting to WiFi ");
-    Serial.print(WIFI_SSID);
-    Serial.print(" ..");
+    Serial.println("Connecting to Ethernet via DHCP...");
 
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-
-    int attempts = 0;
-    while (WiFi.status() != WL_CONNECTED && attempts < 20)
+    // Передаємо нашу рідну MAC-адресу у W5500
+    if (Ethernet.begin(eth_mac) == 0)
     {
-        Serial.print('.');
-        delay(500);
-        attempts++;
-    }
+        Serial.println("Failed to configure Ethernet using DHCP");
 
-    if (WiFi.status() == WL_CONNECTED)
-    {
-        Serial.println("\nWiFi connected!");
-        Serial.print("IP address: ");
-        Serial.println(WiFi.localIP());
+        if (Ethernet.hardwareStatus() == EthernetNoHardware)
+        {
+            Serial.println("W5500 module not found. Check SPI wiring (CS на D5)!");
+        }
+        else if (Ethernet.linkStatus() == LinkOFF)
+        {
+            Serial.println("Ethernet cable is not connected.");
+        }
     }
     else
     {
-        Serial.println("\nFailed to connect to WiFi");
-        Serial.println(WiFi.localIP());
+        Serial.println("\nEthernet connected!");
+        Serial.print("IP address: ");
+        Serial.println(Ethernet.localIP());
     }
 }
 
 bool WiFiManager::isConnected()
 {
-    return WiFi.status() == WL_CONNECTED;
+    // Мережа вважається підключеною, якщо є фізичний лінк і IP-адреса не нульова
+    return (Ethernet.linkStatus() == LinkON) && (Ethernet.localIP() != IPAddress(0, 0, 0, 0));
 }
 
 void WiFiManager::handle()
 {
     unsigned long currentMillis = millis();
 
-    if ((WiFi.status() != WL_CONNECTED) && (currentMillis - previousMillis >= interval))
-    {
-        Serial.print(millis());
-        Serial.println(" - WiFi disconnected. Reconnecting...");
+    // Вбудована функція Ethernet для оновлення оренди IP-адреси по DHCP
+    Ethernet.maintain();
 
-        WiFi.disconnect();
-        WiFi.reconnect();
+    // Якщо втратили лінк (витягнули кабель або впав роутер)
+    if (!isConnected() && (currentMillis - previousMillis >= interval))
+    {
+        Serial.print(currentMillis);
+        Serial.println(" - Ethernet disconnected. Reconnecting...");
+
+        connect(); // Намагаємося підняти мережу знову
 
         previousMillis = currentMillis;
     }

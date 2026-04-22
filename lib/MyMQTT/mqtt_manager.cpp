@@ -7,7 +7,7 @@
 
 void MQTTManager::begin()
 {
-    mqttClient.setClient(wifiClient);
+    mqttClient.setClient(ethClient);
     mqttClient.setServer(MQTT_BROKER, MQTT_PORT);
 
     Serial.println("MQTT Manager initialized");

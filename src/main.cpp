@@ -94,9 +94,9 @@ void setup()
   wifiManager.begin();
   wifiManager.connect();
 
-  Serial.print("WiFi MAC: ");
-  Serial.println(WiFi.macAddress());
-  Serial.println(WiFi.channel());
+  // Serial.print("WiFi MAC: ");
+  // Serial.println(WiFi.macAddress());
+  // Serial.println(WiFi.channel());
 
   // 3. ESP-NOW Ініціалізація
   if (esp_now_init() != ESP_OK)
