@@ -84,7 +84,6 @@ void setup()
 
   // 1. НАЛАШТУВАННЯ ПІНІВ (Завжди робіть це на початку)
   pinMode(LED_BUILTIN, OUTPUT);
-  // Можна короткочасно вимкнути його при старті, поки йде підключення
   digitalWrite(LED_BUILTIN, LOW);
 
   sensorManager.init();
@@ -93,10 +92,6 @@ void setup()
   // 2. WiFi
   wifiManager.begin();
   wifiManager.connect();
-
-  // Serial.print("WiFi MAC: ");
-  // Serial.println(WiFi.macAddress());
-  // Serial.println(WiFi.channel());
 
   // 3. ESP-NOW Ініціалізація
   if (esp_now_init() != ESP_OK)
@@ -115,7 +110,6 @@ void setup()
   preferences.begin("security", false);
   currentSystemState = static_cast<SystemState>(preferences.getInt("mode", 0));
 
-  // Тепер ця функція спрацює правильно, бо pinMode вже налаштовано вище!
   updateHardwareState();
 
   // 5. MQTT
