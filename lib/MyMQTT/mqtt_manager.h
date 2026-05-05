@@ -2,14 +2,23 @@
 #ifndef MQTT_MANAGER_H
 #define MQTT_MANAGER_H
 
-#include <Ethernet.h> // Замість WiFiClient.h
+#include <Ethernet.h>
 #include <PubSubClient.h>
+#include <ArduinoJson.h>
+
+#include "../../include/topics.h"
+#include "../../include/system_state.h"
+#include "../../include/device_controller.h"
+
+#define MQTT_BROKER "192.168.2.1"
+#define MQTT_PORT 1883
+#define MQTT_CLIENT_ID "alarm_main_controller"
+#define MQTT_USER "admin"
+#define MQTT_PASSWORD "LwTxc12!Am"
 
 class MQTTManager
 {
 private:
-    // WiFiClient wifiClient;
-    // PubSubClient mqttClient;
     EthernetClient ethClient;
     PubSubClient mqttClient;
 

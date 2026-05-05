@@ -1,14 +1,11 @@
 #include "mqtt_manager.h"
-#include "../../include/topics.h"
-#include "../../include/config.h"
-#include <ArduinoJson.h>
-#include "../../include/system_state.h"
-#include "../../include/device_controller.h"
 
 void MQTTManager::begin()
 {
     mqttClient.setClient(ethClient);
     mqttClient.setServer(MQTT_BROKER, MQTT_PORT);
+
+    mqttClient.setBufferSize(512);
 
     Serial.println("MQTT Manager initialized");
     Serial.print("Broker: ");
@@ -16,7 +13,6 @@ void MQTTManager::begin()
     Serial.print(":");
     Serial.println(MQTT_PORT);
 }
-
 void MQTTManager::connect()
 {
     if (mqttClient.connected())
@@ -31,10 +27,12 @@ void MQTTManager::connect()
 
     const char *lwtMessage = "{\"gateway_status\":\"offline\",\"device\":\"main_controller\"}";
 
+    String uniqueClientId = String(MQTT_CLIENT_ID) + "-" + String(random(0xffff), HEX);
+
     if (strlen(MQTT_USER) > 0)
     {
         connected = mqttClient.connect(
-            MQTT_CLIENT_ID,
+            uniqueClientId.c_str(),
             MQTT_USER,
             MQTT_PASSWORD,
             TOPIC_GATEWAY_STATUS.c_str(),
@@ -45,7 +43,7 @@ void MQTTManager::connect()
     else
     {
         connected = mqttClient.connect(
-            MQTT_CLIENT_ID,
+            uniqueClientId.c_str(),
             TOPIC_GATEWAY_STATUS.c_str(),
             1,
             true,
@@ -58,7 +56,7 @@ void MQTTManager::connect()
         mqttClient.publish(
             TOPIC_GATEWAY_STATUS.c_str(),
             "{\"gateway_status\":\"online\",\"device\":\"main_controller\"}",
-            true); // true = Retained повідомлення, це дуже добре!
+            true);
 
         subscribe(TOPIC_COMMANDS.c_str());
 
@@ -68,7 +66,7 @@ void MQTTManager::connect()
             publishStatus("armed");
             break;
         case ARMED_PARTIAL:
-            publishStatus("armed_partial");
+            publishStatus("partial");
             break;
         case ARMED_GROUP:
             publishStatus("armed_group");
@@ -77,6 +75,7 @@ void MQTTManager::connect()
             publishStatus("disarmed");
             break;
         }
+
         sensorStatus();
     }
     else
@@ -156,7 +155,7 @@ void MQTTManager::publishStatus(const char *status)
 {
     JsonDocument doc;
     doc["type"] = "status";
-    doc["status"] = status;
+    doc["mode"] = status;
 
     char buffer[128];
     serializeJson(doc, buffer);

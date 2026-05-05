@@ -1,11 +1,4 @@
 #include "espnow_handler.h"
-#include <esp_now.h>
-#include <ArduinoJson.h>
-#include "message_structure.h"
-#include "sensor_manager.h"
-#include "mqtt_manager.h"
-#include "system_state.h"
-#include "topics.h"
 
 #define PAIRING_OFFSET 100
 
@@ -23,29 +16,6 @@ static void sendPairingReply(const uint8_t *macAddr)
         esp_now_add_peer(&peerInfo);
     }
     esp_now_send(macAddr, (uint8_t *)&incomingData, sizeof(incomingData));
-}
-
-static void publishSingleSensor(SensorNode *node)
-{
-    if (node == nullptr)
-        return;
-
-    JsonDocument responseDoc;
-    responseDoc["id"] = node->id;
-    responseDoc["name"] = node->name;
-    responseDoc["type"] = node->type;
-    responseDoc["state"] = (bool)node->state; // Перетворюємо int (0/1) на true/false
-    responseDoc["bat"] = node->batteryVolts;
-    responseDoc["online"] = !sensorManager.isSensorOffline(node->id);
-    responseDoc["mac"] = sensorManager.macToString(node->mac);
-
-    String payload;
-    serializeJson(responseDoc, payload);
-    String topic = TOPIC_SENSORS_BASE + String(node->id) + "/status";
-
-    mqttManager.publish(topic.c_str(), payload.c_str());
-
-    Serial.printf("📡 Відправлено в MQTT -> %s: %s\n", topic.c_str(), payload.c_str());
 }
 
 bool shouldTriggerAlarm(SensorNode *s, int state)

@@ -30,7 +30,7 @@ const unsigned long SENSOR_REPORT_INTERVAL = 3600000;
 // Налаштування: якщо датчик мовчить більше 70 хвилин (годину спить + 10 хв запас)
 const unsigned long OFFLINE_THRESHOLD = 4200000;
 unsigned long lastWatchdogCheck = 0;
-const unsigned long WATCHDOG_INTERVAL = 30000; // Перевіряти кожні 30 сек
+const unsigned long WATCHDOG_INTERVAL = 30000;
 
 void checkSensorsHealth()
 {
@@ -46,14 +46,12 @@ void checkSensorsHealth()
 
       bool isTimeout = (millis() - s->lastSeen > OFFLINE_THRESHOLD);
 
-      // Якщо датчик зник і ми ще про це не звітували
       if (isTimeout && !s->isReportedOffline)
       {
         s->isReportedOffline = true;
         Serial.printf("⚠️ Sensor %d is OFFLINE\n", s->id);
-        sensorStatus(); // Відправляємо оновлений статус (де online буде false)
+        sensorStatus();
       }
-      // Якщо датчик прокинувся після "смерті"
       else if (!isTimeout && s->isReportedOffline)
       {
         s->isReportedOffline = false;
@@ -82,9 +80,7 @@ void setup()
   Serial.begin(115200);
   delay(1000);
 
-  // 1. НАЛАШТУВАННЯ ПІНІВ (Завжди робіть це на початку)
   pinMode(LED_BUILTIN, OUTPUT);
-  // Можна короткочасно вимкнути його при старті, поки йде підключення
   digitalWrite(LED_BUILTIN, LOW);
 
   sensorManager.init();
@@ -93,10 +89,6 @@ void setup()
   // 2. WiFi
   wifiManager.begin();
   wifiManager.connect();
-
-  // Serial.print("WiFi MAC: ");
-  // Serial.println(WiFi.macAddress());
-  // Serial.println(WiFi.channel());
 
   // 3. ESP-NOW Ініціалізація
   if (esp_now_init() != ESP_OK)
@@ -115,14 +107,13 @@ void setup()
   preferences.begin("security", false);
   currentSystemState = static_cast<SystemState>(preferences.getInt("mode", 0));
 
-  // Тепер ця функція спрацює правильно, бо pinMode вже налаштовано вище!
   updateHardwareState();
 
   // 5. MQTT
-  initTopics(); // Формуємо топіки ДО підключення
+  initTopics();
   mqttManager.begin();
   mqttManager.setCallback(mqttCallback);
-  mqttManager.connect(); // Ця функція відправить відновлений стан на сервер
+  mqttManager.connect();
 }
 
 void loop()

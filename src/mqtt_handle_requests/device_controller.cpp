@@ -1,11 +1,4 @@
-#include <Arduino.h>
-#include <ArduinoJson.h>
-#include "sensor_manager.h"
 #include "device_controller.h"
-#include "mqtt_manager.h"
-#include "topics.h"
-#include "system_state.h"
-#include "globals.h"
 
 int activeGroupSensors[MAX_SENSORS];
 int activeGroupSensorsCount = 0;
@@ -38,7 +31,7 @@ void statusSystem(const JsonDocument &doc)
         system_status = "armed";
         break;
     case ARMED_PARTIAL:
-        system_status = "armed_partial";
+        system_status = "partial";
         break;
     case ARMED_GROUP:
         system_status = "armed_group";
@@ -58,7 +51,7 @@ void armPartial(const JsonDocument &doc)
 {
     digitalWrite(LED_BUILTIN, HIGH);
     currentSystemState = ARMED_PARTIAL;
-    mqttManager.publishStatus("partial armed");
+    mqttManager.publishStatus("partial");
     preferences.putInt("mode", currentSystemState);
 }
 
@@ -85,13 +78,12 @@ void publishSingleSensor(SensorNode *node)
 
     String payload;
     serializeJson(responseDoc, payload);
+    String topic = TOPIC_SENSORS_BASE + String(node->id) + "/status";
 
-    String topic = deviceId + "/sensors/" + String(node->id) + "/status";
     mqttManager.publish(topic.c_str(), payload.c_str());
 
-    Serial.printf("Published to %s: %s\n", topic.c_str(), payload.c_str());
+    Serial.printf("📡 Відправлено в MQTT -> %s: %s\n", topic.c_str(), payload.c_str());
 }
-
 void sensorStatus()
 {
     Serial.println("Publishing status for all sensors...");
@@ -101,6 +93,9 @@ void sensorStatus()
         if (node != nullptr && node->isPaired)
         {
             publishSingleSensor(node);
+
+            mqttManager.handle();
+            delay(15);
         }
     }
 }

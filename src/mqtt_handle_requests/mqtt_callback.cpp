@@ -1,8 +1,4 @@
 #include "mqtt_callback.h"
-#include "topics.h"
-#include "json_validation.h"
-#include "commands.h"
-#include <ArduinoJson.h>
 
 void mqttCallback(char *topic, byte *payload, unsigned int length)
 {

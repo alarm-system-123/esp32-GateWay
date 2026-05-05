@@ -1,13 +1,10 @@
 #include "commands.h"
-#include "device_controller.h"
-#include "commandentry.h"
 
 CommandEntry commandTable[] = {
     {"cmd", "arm", armSystem},
     {"cmd", "disarm", disarmSystem},
     {"cmd", "partial", armPartial},
     {"cmd", "system_status", statusSystem},
-    // {"sensor", "sensor_status", sensorStatus},
     {"sensor", "add_sensor", addSensor},
     {"sensor", "remove_sensor", removeSensor},
     {"sensor", "update_config", updateSensorConfig}};

@@ -1,5 +1,4 @@
 #include "topics.h"
-#include <WiFi.h>
 
 static String deviceId;
 String TOPIC_COMMANDS;

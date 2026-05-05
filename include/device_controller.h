@@ -1,7 +1,14 @@
 #pragma once
-#include "mqtt_manager.h"
 #include <ArduinoJson.h>
+#include <Arduino.h>
+
 #include "structure_sensor.h"
+#include "sensor_manager.h"
+#include "mqtt_manager.h"
+#include "topics.h"
+#include "system_state.h"
+#include "globals.h"
+#include "mqtt_manager.h"
 
 void armSystem(const JsonDocument &doc);
 void disarmSystem(const JsonDocument &doc);
